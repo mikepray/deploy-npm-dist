@@ -1,38 +1,84 @@
-name: Deploy Static Site to Webserver
-description: This action builds an npm project and uses scp to upload the result to a remote hosts html directory
-icon: arrow-up-circle
-color: blue
-
-on:
-  push:
-    branches:
-      - main
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-
+name: 'Deploy Static Site to Webserver'
+description: 'This action builds an npm project and uses scp to upload the result to a remote hosts html directory'
+author: 'Mike Pray'
+branding:
+  icon: 'arrow-up-circle'
+  color: 'blue'
+inputs:
+  host:
+    description: 'The hostname of the server'
+    required: true
+  username:
+    description: 'The SSH username'
+    required: true
+  ssh-key:
+    description: 'The SSH private key'
+    required: true
+  source-directory:
+    description: 'Directory to copy from'
+    required: false
+    default: 'dist'
+  destination-directory:
+    description: 'Directory to copy to on the server'
+    required: false
+    default: '/var/www/html'
+  build-command:
+    description: 'Command to build the project'
+    required: false
+    default: 'npm run build'
+  skip-build:
+    description: 'Skip the build step if files are already built'
+    required: false
+    default: 'false'
+  clean-destination:
+    description: 'Remove existing files in the destination directory'
+    required: false
+    default: 'true'
+  ssh-options:
+    description: 'Additional SSH options'
+    required: false
+    default: ''
+runs:
+  using: 'composite'
+  steps:
     - name: Install Dependencies
+      if: ${{ inputs.skip-build != 'true' }}
       run: npm install
-
+      shell: bash
+    
     - name: Build
-      run: npm run build
-
-    - name: Set up SSH key
+      if: ${{ inputs.skip-build != 'true' }}
+      run: ${{ inputs.build-command }}
+      shell: bash
+    
+    - name: Set up SSH
       run: |
         mkdir -p ~/.ssh
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-        chmod 600 ~/.ssh/id_ed25519
-        ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
-
-    - name: Delete existing files on remote server
+        echo "${{ inputs.ssh-key }}" > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+        ssh-keyscan -H ${{ inputs.host }} >> ~/.ssh/known_hosts
+      shell: bash
+      
+    - name: Delete existing files (if requested)
+      if: ${{ inputs.clean-destination == 'true' }}
       run: |
-        ssh -i ~/.ssh/id_ed25519 ${{ secrets.SSH_USERNAME }}@${{ secrets.HOST }} 'rm -rf /var/www/html/*'
-
-    - name: Copy dist
+        ssh -i ~/.ssh/deploy_key ${{ inputs.ssh-options }} ${{ inputs.username }}@${{ inputs.host }} \
+        "if [ -d '${{ inputs.destination-directory }}' ]; then rm -rf ${{ inputs.destination-directory }}/*; else mkdir -p ${{ inputs.destination-directory }}; fi"
+      shell: bash
+      
+    - name: Copy files
       run: |
-        scp -r -i ~/.ssh/id_ed25519 dist/* ${{ secrets.SSH_USERNAME }}@${{ secrets.HOST }}:/var/www/html
+        if [ ! -d "${{ inputs.source-directory }}" ]; then
+          echo "Source directory ${{ inputs.source-directory }} does not exist!"
+          exit 1
+        fi
+        
+        scp -r -i ~/.ssh/deploy_key ${{ inputs.ssh-options }} \
+        ${{ inputs.source-directory }}/* \
+        ${{ inputs.username }}@${{ inputs.host }}:${{ inputs.destination-directory }}/
+      shell: bash
+      
+    - name: Clean up SSH key
+      if: always()
+      run: rm -f ~/.ssh/deploy_key
+      shell: bash
