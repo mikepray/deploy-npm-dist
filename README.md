@@ -4,11 +4,46 @@ This action builds an npm project with `npm install && npm run build` and then u
 
 This requires no other dependent automations.
 
-This requires several secrets to be configured in your repository:
+## Usage
 
-- `SSH_PRIVATE_KEY`: The `ed25519` encrypted private key of the user allowed to upload the server
-- `SSH_USERNAME`: The username of the user allowed to uplaod to the server
-- `HOST`: The hostname of the remote host
+Example usage:
+
+```
+name: Deploy Website
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Allows manual triggering from GitHub UI
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Deploy to production server
+        uses: mike-pray/static-site-deploy-action@v1  # Replace with your username/repo
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source-directory: 'dist'
+          destination-directory: '/var/www/html'
+          # Optional parameters with their defaults
+          # build-command: 'npm run build'
+          # skip-build: 'false'
+          # clean-destination: 'true'
+          # ssh-options: '-o StrictHostKeyChecking=accept-new'
+      
+```
 
 ## Considerations
 
