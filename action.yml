@@ -38,9 +38,20 @@ inputs:
     description: 'Additional SSH options'
     required: false
     default: ''
+  node-version:
+    description: 'Node.js version to use'
+    required: false
+    default: '22'
 runs:
   using: 'composite'
   steps:
+    - name: Setup Node.js
+      if: ${{ inputs.skip-build != 'true' }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'npm'
+    
     - name: Install Dependencies
       if: ${{ inputs.skip-build != 'true' }}
       run: npm install
