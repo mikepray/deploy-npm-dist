@@ -1,5 +1,5 @@
 name: Deploy Static Site to Webserver
-description: This action builds an npm project with npm install && npm run build and then uses ssh and scp to upload the result to a remote hosts /var/www/html directory
+description: This action builds an npm project and uses scp to upload the result to a remote hosts html directory
 
 on:
   push:
