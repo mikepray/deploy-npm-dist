@@ -1,4 +1,4 @@
-name: Deploy Astro Blog to DigitalOcean
+name: Deploy Static Site to Webserver
 
 on:
   push:
