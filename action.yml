@@ -1,5 +1,7 @@
 name: Deploy Static Site to Webserver
 description: This action builds an npm project and uses scp to upload the result to a remote hosts html directory
+icon: arrow-up-circle
+color: blue
 
 on:
   push:
