@@ -14,7 +14,7 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:  # Allows manual triggering from GitHub UI
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
@@ -23,25 +23,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Deploy Static Site to Webserver
+        uses: mikepray/deploy-static-site@v1
         with:
-          node-version: '20'
-          cache: 'npm'
-      
-      - name: Deploy to production server
-        uses: mike-pray/static-site-deploy-action@v1  # Replace with your username/repo
-        with:
-          host: ${{ secrets.PROD_HOST }}
+          host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           ssh-key: ${{ secrets.SSH_PRIVATE_KEY }}
           source-directory: 'dist'
-          destination-directory: '/var/www/html'
-          # Optional parameters with their defaults
-          # build-command: 'npm run build'
-          # skip-build: 'false'
-          # clean-destination: 'true'
-          # ssh-options: '-o StrictHostKeyChecking=accept-new'
+          destination-directory: ${{ secrets.DEPLOY_PATH || '/var/www/html' }}
+          node-version: '20'
+          build-command: ${{ secrets.BUILD_COMMAND || 'npm run build:prod' }}
       
 ```
 
